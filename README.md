@@ -55,6 +55,18 @@ python3 rung-cli.py --root /path/to/your/repo --json
 | [danshapiro/trycycle](https://github.com/danshapiro/trycycle) | 30/100 | E | FAIL |
 | [strongdm/comply](https://github.com/strongdm/comply) | 0/100 | E | FAIL |
 
+## Case study: Forking trycycle and improving its score
+
+We forked [danshapiro/trycycle](https://github.com/danshapiro/trycycle) (the tool that inspired our factory's trycycle loop) and applied Rung's recommendations to demonstrate the CLI's value.
+
+| Metric | Before | After | Delta |
+|--------|--------|-------|-------|
+| Score | 30/100 | 90/100 | **+60** |
+| Grade | E (Initial) | A (Governance-Optimized) | **+4 levels** |
+| Quality Gate | FAIL | PASS | **Fixed** |
+
+7 governance improvements were applied — each directly from a Rung CLI recommendation with cited sources. No code was changed; all fixes were documentation, CI, and build infrastructure. See the full analysis at [edoworks/trycycle/GOVERNANCE_AUDIT.md](https://github.com/edoworks/trycycle/blob/main/GOVERNANCE_AUDIT.md).
+
 ## Cited sources
 
 - [agents.md](https://agents.md) — Linux Foundation / AAIF cross-vendor agent policy spec (60k+ repos)

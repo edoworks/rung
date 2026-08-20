@@ -1,0 +1,22 @@
+name: Governance Audit
+on: [push, pull_request]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Rung governance audit
+        run: |
+          python3 rung-cli.py --root . --json > audit.json
+          SCORE=$(python3 -c "import json; print(json.load(open('audit.json'))['score'])")
+          GRADE=$(python3 -c "import json; print(json.load(open('audit.json'))['grade'])")
+          GATE=$(python3 -c "import json; print(json.load(open('audit.json'))['quality_gate'])")
+          echo "Governance score: $SCORE/100, Grade: $GRADE, Gate: $GATE"
+          echo "::set-output name=score::$SCORE"
+          echo "::set-output name=grade::$GRADE"
+          if [ "$GATE" = "FAIL" ]; then echo "::warning::Governance quality gate failed"; fi
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-audit
+          path: audit.json

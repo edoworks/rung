@@ -82,15 +82,39 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Rung CLI — AI Agent Governance Audit")
     parser.add_argument("--root", default=".", help="Repository root to audit")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of text")
+    parser.add_argument("--preview", action="store_true", help="Output free preview JSON")
+    parser.add_argument("--html", action="store_true", help="Output full HTML report")
+    parser.add_argument("--pdf", action="store_true", help="Output PDF (requires weasyprint)")
+    parser.add_argument("-o", "--output", help="Write output to file instead of stdout")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
     result = run_audit(root)
 
-    if args.json:
-        print(json.dumps(result_to_dict(result), indent=2))
+    if args.preview:
+        from rung.renderer import render_preview
+        output = json.dumps(render_preview(result), indent=2)
+    elif args.html:
+        from rung.renderer import render_html
+        output = render_html(result)
+    elif args.pdf:
+        from rung.renderer import render_pdf_data
+        pdf_bytes = render_pdf_data(result)
+        if args.output:
+            Path(args.output).write_bytes(pdf_bytes)
+            return 0 if result.quality_gate == "PASS" else 1
+        else:
+            sys.stdout.buffer.write(pdf_bytes)
+            return 0 if result.quality_gate == "PASS" else 1
+    elif args.json:
+        output = json.dumps(result_to_dict(result), indent=2)
     else:
-        print(format_report(result))
+        output = format_report(result)
+
+    if args.output:
+        Path(args.output).write_text(output, encoding="utf-8")
+    else:
+        print(output)
 
     return 0 if result.quality_gate == "PASS" else 1
 

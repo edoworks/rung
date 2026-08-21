@@ -12,6 +12,7 @@ __version__ = "0.2.0"
 from rung.audit import run_audit, AuditResult
 from rung.scoring import compute_score, GRADE_LABELS
 from rung.models import CheckResult, EvidenceState, Confidence, SourceClass, AuthorityLevel
+from rung.renderer import render_preview, render_html, render_pdf_data
 
 __all__ = [
     "run_audit",
@@ -23,4 +24,7 @@ __all__ = [
     "Confidence",
     "SourceClass",
     "AuthorityLevel",
+    "render_preview",
+    "render_html",
+    "render_pdf_data",
 ]

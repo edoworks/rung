@@ -214,7 +214,7 @@ proof, compliance, or legal advice.
 
 ## Sponsor
 
-If Rung helps your team, consider [sponsoring on GitHub](https://github.com/sponsors/edoworks).
+If Rung helps your team, consider [supporting Edoworks OSS](https://rung.edoworks.com).
 
 ## License
 

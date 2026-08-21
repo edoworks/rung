@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "sources": [
+    {
+      "id": "SRC-NIST-AI-RMF",
+      "title": "NIST AI Risk Management Framework 1.0",
+      "url": "https://nist.gov/itl/ai-risk-management-framework",
+      "classification": "standard",
+      "repository_use": "governance and verification guidance"
+    },
+    {
+      "id": "SRC-IBM-ADLC",
+      "title": "IBM Agent Development Lifecycle",
+      "url": "https://www.ibm.com/think/topics/agent-development-lifecycle-adlc",
+      "classification": "vendor_guidance",
+      "repository_use": "traceability guidance"
+    },
+    {
+      "id": "SRC-AIRFLOW-AGENTS",
+      "title": "apache/airflow AGENTS.md",
+      "url": "https://github.com/apache/airflow/blob/main/AGENTS.md",
+      "classification": "exemplar",
+      "repository_use": "attribution and Never-rule conventions"
+    }
+  ]
+}

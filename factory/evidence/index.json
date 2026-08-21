@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "entries": [
+    {
+      "id": "issue-1-self-audit-governance",
+      "work_item": "GitHub issue #1",
+      "scope": "local repository self-audit governance evidence",
+      "verification": [
+        "python3 scripts/build_single_file.py --check",
+        "python3 -m unittest discover -s tests",
+        "python3 -m rung --root . --json"
+      ],
+      "limitations": [
+        "GitHub branch protection and required checks are not observable from repository contents",
+        "The verification gate remains unobservable and requires owner_evidence_required authority"
+      ]
+    }
+  ]
+}

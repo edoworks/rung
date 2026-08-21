@@ -34,6 +34,22 @@ python3 scripts/build_single_file.py --check
 - Never weaken check thresholds to make a check pass
 - Never commit secrets, credentials, or signing keys
 - Never skip `python3 -m pytest tests/` before commit or merge
+- Never claim GitHub branch protection or required checks are observable from repository contents
+- Never use destructive git operations without an explicit owner request
+- Never mark work complete before its stated verification passes
+
+## Evidence and sources
+
+- `docs/research/sources.json` is the local registry for external sources cited by this repository.
+- `factory/evidence/index.json` links work items to local verification commands and their results.
+- `factory/status.json` is the current session ledger for active work and blockers.
+- Repository evidence may document a verification gate and show that CI runs tests, but it cannot establish GitHub branch protection. The verification gate therefore remains `unobservable` and requires `owner_evidence_required` authority.
+
+## Change workflow
+
+- Before committing, complete self-review, then independent (rubberduck) review, then rerun verification.
+- Use the cyclic workflow: plan -> build -> verify -> (if fail) fix -> verify again -> review.
+- AI-assisted commits use `Generated-by: <Agent Name and Version>`; agent-authored GitHub messages use `Drafted-by: <Agent Name and Version>`.
 
 ## Testing
 

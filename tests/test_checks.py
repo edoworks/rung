@@ -122,6 +122,18 @@ class TestFullAudit(unittest.TestCase):
         self.assertIsNotNone(result.report_data_sha256)
         self.assertEqual(len(result.checks), 11)
 
+    def test_self_audit_has_no_absent_or_claimed_blocking_checks(self):
+        """Local governance evidence must not hide an unresolved blocking gap."""
+        rung_root = Path(__file__).parent.parent
+        result = run_audit(rung_root)
+        blocking_states = [
+            check.state.value for check in result.checks
+            if check.blocking and check.weight > 0
+        ]
+        self.assertNotIn("absent", blocking_states)
+        self.assertNotIn("claimed", blocking_states)
+        self.assertEqual(result.authority.value, "owner_evidence_required")
+
     def test_fake_ci_does_not_pass_gate(self):
         """Fake CI (echo only) should not pass the quality gate."""
         result = run_audit(FIXTURES / "fake_ci_echo_only")

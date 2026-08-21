@@ -1,0 +1,9 @@
+{
+  "state": "active",
+  "active_increment": "issue-1-self-audit-governance",
+  "status": "local governance evidence and audit workflow fix in progress",
+  "blockers": [
+    "GitHub branch protection and required checks are unobservable without owner evidence"
+  ],
+  "last_update": "2026-08-21"
+}

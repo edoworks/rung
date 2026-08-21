@@ -1,0 +1,2 @@
+# excellent_public_evidence fixture: has AGENTS.md, CI running tests, CHANGELOG, source registry, attribution, review, never-rules, cyclic verification.
+# Positive for: most checks (DETECTED or higher)

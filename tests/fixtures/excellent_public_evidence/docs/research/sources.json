@@ -1,0 +1,5 @@
+{
+  "sources": [
+    {"id": "SRC-001", "title": "Test source", "url": "https://example.com", "classification": "first_party"}
+  ]
+}

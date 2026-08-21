@@ -1,16 +1,26 @@
 # Rung — Agent Map
 
-Rung is an open-source CLI that audits repositories for AI agent governance readiness.
+Rung is an open-source audit engine that scores repositories for AI agent
+governance readiness. It uses a six-state evidence maturity model
+(absent, claimed, detected, enforced, verified, unobservable) rather than
+boolean pass/fail.
 
 ## Build & Test
 
 ```bash
-python3 rung-cli.py --root .
+# Run tests
+python3 -m pytest tests/
+
+# Run the CLI against your repo
+python3 -m rung --root .
+
+# JSON output for CI
+python3 -m rung --root . --json
 ```
 
 ## Code Style
 
-- Python 3.10+ (dataclasses, type hints)
+- Python 3.10+ (dataclasses, type hints, enums)
 - No external dependencies (stdlib only)
 - MIT-licensed
 
@@ -22,8 +32,8 @@ python3 rung-cli.py --root .
 
 ## Testing
 
-The CLI is validated against real repositories:
-- openai/codex (AGENTS.md exemplar)
-- apache/airflow (attribution + boundaries exemplar)
-- danshapiro/trycycle (agent skill with AGENTS.md)
-- strongdm/comply (SOC2 compliance tool)
+The CLI is validated against adversarial fixtures in tests/fixtures/:
+- excellent_public_evidence (positive)
+- policy_only (deceptive: claims verification but no CI)
+- fake_ci_echo_only (deceptive: CI exists but runs no tests)
+- no_never_rules (negative: empty repo)

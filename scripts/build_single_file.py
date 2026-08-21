@@ -39,10 +39,13 @@ def render() -> str:
 """Generated standalone Rung CLI. Do not edit; run scripts/build_single_file.py."""
 
 # source-sha256: {digest.hexdigest()}
+import builtins
 import importlib.abc
 import importlib.util
+from types import MappingProxyType
 
-_SOURCES = {payload}
+_SOURCES = MappingProxyType({payload})
+builtins._RUNG_BUNDLED_SOURCES = _SOURCES
 
 
 class _BundledLoader(importlib.abc.MetaPathFinder, importlib.abc.Loader):

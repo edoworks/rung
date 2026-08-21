@@ -25,6 +25,50 @@ python3 -m rung --root /path/to/your/repo --json
 python3 rung-cli.py --root /path/to/your/repo --json
 ```
 
+The original `rung --root ...` invocation remains the normal audit interface.
+
+## Reproducible receipts
+
+Run Rung from an independently installed, version-pinned distribution. Do not
+install or execute code from the repository being audited. Both output paths
+must be outside their audited checkout and must not already exist.
+
+```bash
+# Create canonical RungVerificationReceipt/v1 evidence.
+rung verify --root /path/to/clean-checkout --receipt /safe/outside/receipt.json
+
+# Re-run from a separate clean checkout and write a distinct observation.
+rung replay --root /path/to/independent-clean-checkout \
+  --receipt /safe/outside/receipt.json \
+  --observation /safe/outside/observation.json
+```
+
+`verify` requires an exact clean Git `HEAD`, including no untracked files, a
+supported GitHub `origin`, and no tracked symlinks or submodules. Every regular
+tracked file is compared with its HEAD blob even when index flags hide changes;
+the audit reads only verified Git objects materialized into a private directory.
+HTTPS, SCP-style SSH, and `ssh://` GitHub origins normalize to the lowercase
+identity `github.com/owner/repository`. The receipt binds that identity, the
+commit and tree object IDs, UTC Git committer timestamp, AuditResult schema and
+digest, gate, authority, Rung version, engine identity, stable structured
+arguments, and limitations.
+
+Receipt and observation files are strict, canonical UTF-8 JSON. Unknown or
+duplicate members, noncanonical hashes, invalid fields, and inputs over 1 MiB
+are rejected. Each document has a SHA-256 digest computed over canonical JSON
+excluding its own digest member. Replay never changes the receipt. It returns
+`0` for a match, `2` for structurally valid evidence that does not match, and
+`1` for malformed input or a runtime failure. A valid mismatch still produces
+an immutable replay observation with deterministic mismatch categories;
+malformed input produces no trusted observation.
+
+The `engine_artifact_sha256` bytes are defined precisely as the standalone
+generator's bundled-source stream: for every `rung/**/*.py` in sorted path
+order, UTF-8 encode its normalized module name, NUL, LF-normalized UTF-8 source,
+and NUL. The generated `rung-cli.py` recomputes this digest from the actual
+read-only source map its loader executes; modular installs compute the same
+value from installed package sources.
+
 ## What it checks
 
 | # | Check | Weight | Blocking? | Source |
@@ -102,6 +146,18 @@ python3 scripts/build_single_file.py --check
 The generator embeds a digest of all package sources and emits deterministic
 bytes. Do not edit `rung-cli.py` directly.
 
+### Agent skill
+
+Install the reproducible-verification workflow with the skills CLI:
+
+```bash
+npx skills add edoworks/rung --skill rung-reproducible-verification
+```
+
+The skill requires an independently installed, pinned Rung engine, a receipt
+from one clean checkout, and replay from another. Canonical JSON, not generated
+model prose, is the authoritative evidence.
+
 ## Use in CI
 
 ```yaml
@@ -149,8 +205,12 @@ settings. GitHub's branch-protection API requires Administration read
 permission, even for reads on public repositories. Rung therefore labels
 these controls as `unobservable` rather than passing or failing them.
 
-Rung is an automated public-evidence assessment. It is not certification,
-compliance, or legal advice.
+Rung's production audit is a deterministic, non-LLM scanner and does not
+install or execute target-repository code. It remains an automated public-only
+evidence assessment: unobservable controls and resulting authority limits are
+preserved in receipts and replay observations. Unsigned reproducibility
+evidence is not attestation, certification, enforcement proof, correctness
+proof, compliance, or legal advice.
 
 ## Sponsor
 

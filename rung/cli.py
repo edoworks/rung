@@ -80,6 +80,19 @@ def format_report(result) -> str:
 
 
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] in {"verify", "replay"}:
+        command = sys.argv[1]
+        parser = argparse.ArgumentParser(prog=f"rung {command}")
+        parser.add_argument("--root", required=True, help="Clean Git checkout root")
+        parser.add_argument("--receipt", required=True, help="Verification receipt path")
+        if command == "replay":
+            parser.add_argument("--observation", required=True, help="Replay observation path")
+        args = parser.parse_args(sys.argv[2:])
+        from rung.verification import verification_main
+        return verification_main(
+            command, args.root, args.receipt, getattr(args, "observation", None)
+        )
+
     parser = argparse.ArgumentParser(description="Rung CLI — AI Agent Governance Audit")
     parser.add_argument("--root", default=".", help="Repository root to audit")
     parser.add_argument("--commit-sha", type=lambda value: value if re.fullmatch(r"[0-9a-f]{40}", value) else parser.error("--commit-sha must be 40 lowercase hex characters"), help="Exact audited commit SHA")

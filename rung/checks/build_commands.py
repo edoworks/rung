@@ -38,7 +38,7 @@ def check_build_commands(root: Path) -> CheckResult:
     has_runner = makefile.exists() or justfile.exists() or package_json.exists()
     if found_cmds:
         r.state = EvidenceState.DETECTED
-        r.evidence.append(f"Declared commands: {', '.join(set(found_cmds[:5]))}")
+        r.evidence.append(f"Declared commands: {', '.join(found_cmds[:5])}")
         if has_runner:
             r.evidence.append("Build runner found (Makefile/justfile/package.json)")
     elif has_runner:

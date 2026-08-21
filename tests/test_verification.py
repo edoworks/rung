@@ -80,6 +80,8 @@ class VerificationTest(unittest.TestCase):
         subprocess.run(
             ["git", "clone", "-q", str(self.source), str(clone)], check=True
         )
+        self._git(clone, "config", "user.name", "Rung Test")
+        self._git(clone, "config", "user.email", "rung@example.invalid")
         self._git(clone, "remote", "set-url", "origin", repository)
         return clone
 

@@ -25,6 +25,11 @@ def check_build_commands(root: Path) -> CheckResult:
 
     content = read_text(agents_md) or ""
     found_cmds = detect_build_commands(content)
+    found_cmds = [command for command in found_cmds if not (
+        command.startswith(("python ", "python3 "))
+        and command.split()[-1].endswith(".py")
+        and not (root / command.split()[-1]).is_file()
+    )]
 
     makefile = root / "Makefile"
     justfile = root / "justfile"

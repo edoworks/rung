@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -81,6 +82,9 @@ def format_report(result) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Rung CLI — AI Agent Governance Audit")
     parser.add_argument("--root", default=".", help="Repository root to audit")
+    parser.add_argument("--commit-sha", type=lambda value: value if re.fullmatch(r"[0-9a-f]{40}", value) else parser.error("--commit-sha must be 40 lowercase hex characters"), help="Exact audited commit SHA")
+    parser.add_argument("--repository", help="Stable repository identifier for the result digest")
+    parser.add_argument("--timestamp", help="Explicit RFC 3339 report timestamp for deterministic rendering")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of text")
     parser.add_argument("--preview", action="store_true", help="Output free preview JSON")
     parser.add_argument("--html", action="store_true", help="Output full HTML report")
@@ -89,7 +93,7 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
-    result = run_audit(root)
+    result = run_audit(root, commit_sha=args.commit_sha, repository=args.repository, timestamp=args.timestamp)
 
     if args.preview:
         from rung.renderer import render_preview

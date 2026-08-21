@@ -7,7 +7,7 @@ inspection or is unobservable from public evidence.
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
-from rung.evidence import read_text, has_pattern, has_ci_workflows, ci_workflow_runs_tests, ci_workflow_enforces_gate
+from rung.evidence import read_text, has_affirmative_pattern, has_ci_workflows, ci_workflow_runs_tests, ci_workflow_enforces_gate
 
 
 def check_verification_gate(root: Path) -> CheckResult:
@@ -36,15 +36,13 @@ def check_verification_gate(root: Path) -> CheckResult:
             content = read_text(f)
             if content is None:
                 continue
-            for pattern in patterns:
-                if has_pattern(content, pattern):
-                    documented = True
-                    r.evidence.append(f"Verification gate mentioned in {f.relative_to(root)}")
-                    break
+            if has_affirmative_pattern(content, patterns):
+                documented = True
+                r.evidence.append(f"Verification gate mentioned in {f.relative_to(root)}")
 
     githooks = root / ".githooks"
     husky = root / ".husky"
-    has_hooks = githooks.exists() or husky.exists()
+    has_hooks = any(path.is_dir() and any(child.is_file() for child in path.iterdir()) for path in (githooks, husky))
     if has_hooks:
         documented = True
         r.evidence.append("Git hooks directory found (.githooks or .husky)")
@@ -63,7 +61,7 @@ def check_verification_gate(root: Path) -> CheckResult:
             r.limitations.append("Workflow existence alone is not enforcement; the workflow must run tests and be required")
 
     if documented and ci_runs_tests:
-        r.state = EvidenceState.DETECTED
+        r.state = EvidenceState.UNOBSERVABLE
         r.limitations.append("Actual enforcement (required status checks, branch protection) is not observable from public repository contents without Administration read permission")
     elif documented or has_hooks:
         r.state = EvidenceState.CLAIMED

@@ -8,6 +8,7 @@ workflow existence alone.
 from __future__ import annotations
 
 import re
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -24,7 +25,31 @@ def read_text(path: Path) -> Optional[str]:
 
 def find_file(root: Path, candidates: list[Path]) -> list[Path]:
     """Return existing files from a list of candidate paths."""
-    return [p for p in candidates if p.exists()]
+    return [p for p in candidates if p.is_file() and bool((read_text(p) or "").strip())]
+
+
+def has_valid_json(path: Path) -> bool:
+    """Return true for a nonempty regular file containing JSON data."""
+    if not path.is_file():
+        return False
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return isinstance(value, (dict, list)) and bool(value)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return False
+
+
+def has_affirmative_pattern(content: str, patterns: list[str]) -> bool:
+    """Match policy language while rejecting obvious negations and examples."""
+    for line in content.splitlines():
+        normalized = line.strip().lower()
+        if not normalized or normalized.startswith(("# example", "example:")):
+            continue
+        if re.search(r"\b(?:do not|don't|not required|never use|must not|optional|convenient)\b", normalized):
+            continue
+        if any(has_pattern(line, pattern) for pattern in patterns):
+            return True
+    return False
 
 
 def count_pattern(content: str, pattern: str) -> int:
@@ -70,8 +95,30 @@ def ci_workflow_runs_tests(root: Path) -> bool:
         content = read_text(wf_file)
         if content is None:
             continue
-        for pattern in test_patterns:
-            if has_pattern(content, pattern):
+        lines = content.splitlines()
+        commands = []
+        index = 0
+        while index < len(lines):
+            command = re.match(r"^(\s*)(?:-\s*)?run:\s*(.*)$", lines[index])
+            if not command:
+                index += 1
+                continue
+            value = command.group(2).strip()
+            if value in ("|", ">", ""):
+                base_indent = len(command.group(1))
+                block = []
+                index += 1
+                while index < len(lines) and len(lines[index]) - len(lines[index].lstrip()) > base_indent:
+                    block.append(lines[index].strip())
+                    index += 1
+                commands.extend(block)
+                continue
+            commands.append(value)
+            index += 1
+        for command in commands:
+            if re.match(r"^(?:echo|printf)\b", command):
+                continue
+            if any(has_pattern(command, pattern) for pattern in test_patterns):
                 return True
     return False
 
@@ -123,16 +170,19 @@ def detect_build_commands(content: str) -> list[str]:
         r'dotnet\s+(?:test|build)',
     ]
     found = []
-    for pattern in cmd_patterns:
-        matches = re.findall(pattern, content)
-        found.extend(matches)
-    return list(set(found))
+    for line in content.splitlines():
+        if re.search(r"\b(?:do not|don't|never|must not)\b", line, re.IGNORECASE):
+            continue
+        for pattern in cmd_patterns:
+            found.extend(re.findall(pattern, line))
+    return sorted(set(found))
 
 
 def count_source_loc(path: Path) -> int:
     """Count lines of code in a source file, excluding tests."""
     try:
-        return sum(1 for _ in path.open(encoding="utf-8", errors="ignore"))
+        with path.open(encoding="utf-8", errors="ignore") as source:
+            return sum(1 for _ in source)
     except Exception:
         return 0
 
@@ -142,8 +192,9 @@ def is_test_file(path: Path) -> bool:
     name = path.name.lower()
     stem = path.stem.lower()
     return (
-        "test" in name
-        or "_test" in stem
+        name.startswith("test_")
+        or stem.endswith("_test")
+        or "tests" in path.parts
         or ".test." in name
         or name.endswith(".test.ts")
         or name.endswith(".test.js")

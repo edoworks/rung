@@ -1,8 +1,9 @@
 """Check 9: Security 'Never' rules in agent policy."""
+import re
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
-from rung.evidence import read_text, count_pattern
+from rung.evidence import read_text
 
 
 def check_security_never_rules(root: Path) -> CheckResult:
@@ -19,13 +20,18 @@ def check_security_never_rules(root: Path) -> CheckResult:
         ],
     )
     files_to_check = [root / "AGENTS.md", root / "SECURITY.md", root / ".github" / "SECURITY.md"]
-    never_count = 0
+    never_rules = set()
     for f in files_to_check:
         if f.exists():
             content = read_text(f)
             if content is None:
                 continue
-            never_count += count_pattern(content, r'\b[Nn]ever\b')
+            never_rules.update(
+                re.sub(r'\s+', ' ', line.strip().lower()) for line in content.splitlines()
+                if re.match(r'^\s*(?:(?:[-*]|\d+[.)])\s+)?Never\b', line, re.IGNORECASE)
+                and re.search(r'\b(?:secret|credential|key|socket|git|security|policy|verification|commit|merge|release|destructive|transmit|execute|threshold|external)\b', line, re.IGNORECASE)
+            )
+    never_count = len(never_rules)
     if never_count >= 5:
         r.state = EvidenceState.DETECTED
         r.evidence.append(f"Found {never_count} 'Never' rules across policy files")

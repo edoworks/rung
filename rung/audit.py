@@ -24,20 +24,25 @@ SCHEMA_VERSION = "1.0.0"
 def _compute_digest(result_dict: dict) -> str:
     """Compute SHA-256 over canonical JSON of the result, excluding the digest field."""
     data = {k: v for k, v in result_dict.items() if k != "report_data_sha256"}
-    canonical = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    canonical = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def run_audit(root: Path, commit_sha: Optional[str] = None) -> AuditResult:
+def run_audit(
+    root: Path,
+    commit_sha: Optional[str] = None,
+    repository: Optional[str] = None,
+    timestamp: Optional[str] = None,
+) -> AuditResult:
     """Run all checks against a repository root and return AuditResult v1."""
     root = Path(root).resolve()
     checks = [check(root) for check in ALL_CHECKS]
     score, grade, gate = compute_score(checks)
     authority = recommend_authority(checks)
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    timestamp = timestamp or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     result = AuditResult(
-        repository=str(root),
+        repository=repository or str(root),
         commit_sha=commit_sha,
         checks=checks,
         score=score,

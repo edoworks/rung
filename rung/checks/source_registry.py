@@ -1,7 +1,9 @@
 """Check 4: Source-of-truth registry for external claims."""
+import json
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
+from rung.evidence import find_file, has_valid_json
 
 
 def check_source_registry(root: Path) -> CheckResult:
@@ -22,7 +24,12 @@ def check_source_registry(root: Path) -> CheckResult:
         root / "SOURCES.md",
         root / "docs" / "SOURCES.md",
     ]
-    found = [p for p in candidates if p.exists()]
+    found = find_file(root, candidates)
+    found = [p for p in found if p.suffix != ".json" or (
+        has_valid_json(p)
+        and isinstance((data := json.loads(p.read_text(encoding="utf-8"))).get("sources"), list)
+        and bool(data["sources"])
+    )]
     if found:
         r.state = EvidenceState.DETECTED
         r.evidence.append(f"Source registry: {found[0].relative_to(root)}")

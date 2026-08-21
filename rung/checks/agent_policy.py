@@ -1,7 +1,9 @@
 """Check 1: Agent policy file exists."""
+import re
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES, IGNORED_PARTS
+from rung.evidence import find_file, read_text
 
 
 def check_agent_policy(root: Path) -> CheckResult:
@@ -23,9 +25,13 @@ def check_agent_policy(root: Path) -> CheckResult:
         root / "CLAUDE.md",
         root / "GEMINI.md",
     ]
-    found = [p for p in candidates if p.exists()]
+    found = find_file(root, candidates)
+    found = [p for p in found if all(
+        re.search(pattern, read_text(p) or "", re.IGNORECASE | re.MULTILINE)
+        for pattern in (r"^#{1,6}\s+.*(?:build|test)", r"^#{1,6}\s+.*security")
+    )]
     nested = list(root.rglob("AGENTS.md"))
-    nested = [p for p in nested if p != root / "AGENTS.md" and any(part not in IGNORED_PARTS for part in p.relative_to(root).parts[:-1])]
+    nested = [p for p in nested if p != root / "AGENTS.md" and all(part not in IGNORED_PARTS for part in p.relative_to(root).parts[:-1]) and p.is_file()]
 
     if found:
         r.state = EvidenceState.DETECTED

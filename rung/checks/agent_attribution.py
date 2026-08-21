@@ -2,7 +2,7 @@
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
-from rung.evidence import read_text, has_pattern
+from rung.evidence import read_text, has_affirmative_pattern
 
 
 def check_agent_attribution(root: Path) -> CheckResult:
@@ -24,11 +24,9 @@ def check_agent_attribution(root: Path) -> CheckResult:
             content = read_text(f)
             if content is None:
                 continue
-            for pattern in patterns:
-                if has_pattern(content, pattern):
-                    found = True
-                    r.evidence.append(f"Attribution convention in {f.relative_to(root)}")
-                    break
+            if has_affirmative_pattern(content, patterns):
+                found = True
+                r.evidence.append(f"Attribution convention in {f.relative_to(root)}")
     if found:
         r.state = EvidenceState.DETECTED
     else:

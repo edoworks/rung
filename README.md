@@ -20,6 +20,9 @@ python3 -m rung --root /path/to/your/repo
 
 # JSON output for CI
 python3 -m rung --root /path/to/your/repo --json
+
+# Dependency-free standalone artifact
+python3 rung-cli.py --root /path/to/your/repo --json
 ```
 
 ## What it checks
@@ -84,6 +87,20 @@ git clone https://github.com/edoworks/rung.git
 cd rung
 python3 -m rung --root .
 ```
+
+### Standalone artifact
+
+`rung-cli.py` is generated from the canonical modular package and runs with
+Python 3.10+ without installation or third-party dependencies. Contributors
+must regenerate and verify it after changing `rung/`:
+
+```bash
+python3 scripts/build_single_file.py
+python3 scripts/build_single_file.py --check
+```
+
+The generator embeds a digest of all package sources and emits deterministic
+bytes. Do not edit `rung-cli.py` directly.
 
 ## Use in CI
 

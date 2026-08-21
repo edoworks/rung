@@ -1,7 +1,9 @@
 """Check 6: Session ledger / status tracking."""
+import json
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
+from rung.evidence import find_file, has_valid_json
 
 
 def check_session_ledger(root: Path) -> CheckResult:
@@ -27,7 +29,11 @@ def check_session_ledger(root: Path) -> CheckResult:
         root / "docs" / "STATUS.md",
         root / "CHANGELOG.md",
     ]
-    found = [p for p in candidates if p.exists()]
+    found = find_file(root, candidates)
+    found = [p for p in found if p.suffix != ".json" or (
+        has_valid_json(p)
+        and any(key in json.loads(p.read_text(encoding="utf-8")) for key in ("state", "status", "active_increment", "items"))
+    )]
     if found:
         r.state = EvidenceState.DETECTED
         r.evidence.append(f"Session/status tracking: {found[0].relative_to(root)}")

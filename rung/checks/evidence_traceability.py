@@ -6,7 +6,7 @@ workflow existence alone is detected, not enforced or verified.
 from pathlib import Path
 from rung.models import CheckResult, EvidenceState, Confidence
 from rung.sources import SOURCES
-from rung.evidence import read_text, has_ci_workflows, ci_workflow_runs_tests
+from rung.evidence import find_file, has_ci_workflows, ci_workflow_runs_tests
 
 
 def check_evidence_traceability(root: Path) -> CheckResult:
@@ -32,7 +32,11 @@ def check_evidence_traceability(root: Path) -> CheckResult:
         root / "CHANGELOG.md",
         root / "docs" / "CHANGELOG.md",
     ]
-    found = [p for p in candidates if p.exists()]
+    found = find_file(root, candidates)
+    found = [p for p in found if p.is_dir() or (
+        len((text := p.read_text(encoding="utf-8", errors="ignore")).splitlines()) >= 3
+        and ("changelog" in text.lower() or "trace" in text.lower() or "evidence" in text.lower())
+    )]
     ci_exists = has_ci_workflows(root)
     ci_runs_tests = ci_workflow_runs_tests(root)
 

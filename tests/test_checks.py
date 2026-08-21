@@ -8,7 +8,7 @@ merely coverage; it is resisting false confidence.
 import unittest
 from pathlib import Path
 
-from rung.audit import run_audit
+from rung.audit import _compute_digest, result_to_dict, run_audit
 from rung.models import EvidenceState
 from rung.scoring import compute_score, recommend_authority
 from rung.checks.verification_gate import check_verification_gate
@@ -39,7 +39,7 @@ class TestVerificationGate(unittest.TestCase):
     def test_excellent_public_evidence(self):
         """CI that runs tests + documented gate -> DETECTED with unobservable limitation."""
         result = check_verification_gate(FIXTURES / "excellent_public_evidence")
-        self.assertEqual(result.state, EvidenceState.DETECTED)
+        self.assertEqual(result.state, EvidenceState.UNOBSERVABLE)
         self.assertTrue(any("not observable" in lim for lim in result.limitations))
 
 
@@ -105,7 +105,8 @@ class TestFullAudit(unittest.TestCase):
         self.assertEqual(result.schema_version, "1.0.0")
         self.assertIsNotNone(result.report_data_sha256)
         self.assertEqual(len(result.report_data_sha256), 64)
-        self.assertEqual(result.quality_gate, "PASS")
+        self.assertEqual(result.quality_gate, "FAIL")
+        self.assertEqual(result.authority.value, "owner_evidence_required")
         self.assertTrue(result.score > 0)
 
     def test_audit_deterministic(self):
@@ -144,6 +145,19 @@ class TestDigestIntegrity(unittest.TestCase):
         # Re-running should produce the same digest (deterministic)
         result2 = run_audit(FIXTURES / "excellent_public_evidence")
         self.assertEqual(result.report_data_sha256, result2.report_data_sha256)
+
+    def test_digest_excludes_render_metadata_but_binds_commit(self):
+        result = run_audit(FIXTURES / "excellent_public_evidence", commit_sha="a" * 40, repository="owner/repo", timestamp="2026-01-01T00:00:00Z")
+        data = result_to_dict(result)
+        expected = _compute_digest(data)
+        data["timestamp"] = "2099-01-01T00:00:00Z"
+        self.assertNotEqual(_compute_digest(data), expected)
+        data = result_to_dict(result)
+        data["repository"] = "other/repo"
+        self.assertNotEqual(_compute_digest(data), expected)
+        data = result_to_dict(result)
+        data["commit_sha"] = "b" * 40
+        self.assertNotEqual(_compute_digest(data), expected)
 
 
 if __name__ == "__main__":

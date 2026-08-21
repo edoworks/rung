@@ -12,6 +12,8 @@ jobs:
       - name: Run Rung governance audit
         run: |
           pip install -e .
+          python3 scripts/build_single_file.py --check
+          python3 -m unittest discover -s tests
           python3 -m rung --root . --json > audit.json
           SCORE=$(python3 -c "import json; print(json.load(open('audit.json'))['score'])")
           GRADE=$(python3 -c "import json; print(json.load(open('audit.json'))['grade'])")

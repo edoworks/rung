@@ -1,0 +1,27 @@
+{
+  "schema": "foculoom-product/v0.1",
+  "id": "rung",
+  "name": "Rung",
+  "owner": "Foculoom LLC",
+  "builder": "Edoworks",
+  "kind": "developer-tool",
+  "value_proposition": "Determine the maximum responsible authority for coding agents from observable repository governance evidence.",
+  "artifacts": ["python-package", "standalone-python", "github-action", "agent-skill", "html-report"],
+  "channels": [
+    {"id": "github-release", "type": "direct", "status": "planned"},
+    {"id": "pypi", "type": "registry", "status": "planned"},
+    {"id": "github-actions", "type": "marketplace", "status": "planned"},
+    {"id": "skills-sh", "type": "directory", "status": "planned"},
+    {"id": "website", "type": "direct", "status": "available", "url": "https://rung.edoworks.com/"}
+  ],
+  "commercial": {
+    "priority": "paused",
+    "model": "open-source-sponsorship",
+    "verified_revenue": "none"
+  },
+  "evidence": {
+    "lifecycle": "released",
+    "external_adoption": "unverified",
+    "benchmark": "pending"
+  }
+}

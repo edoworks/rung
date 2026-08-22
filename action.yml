@@ -1,0 +1,135 @@
+name: Rung governance evidence audit
+description: Determine a repository's maximum responsible coding-agent authority from observable governance evidence.
+author: Foculoom LLC
+inputs:
+  root:
+    description: Repository root to audit, relative to the GitHub workspace.
+    required: false
+    default: .
+  minimum-score:
+    description: Optional numeric score threshold. Set 0 to disable score gating.
+    required: false
+    default: "0"
+  require-gate:
+    description: Fail when Rung's quality gate is not PASS.
+    required: false
+    default: "false"
+  output-format:
+    description: Report format to write: json or text.
+    required: false
+    default: json
+  report-path:
+    description: Workspace-relative destination for the report.
+    required: false
+    default: rung-report.json
+outputs:
+  score:
+    description: Rung repository governance-evidence score.
+    value: ${{ steps.audit.outputs.score }}
+  grade:
+    description: Rung score grade.
+    value: ${{ steps.audit.outputs.grade }}
+  quality-gate:
+    description: Rung quality-gate result.
+    value: ${{ steps.audit.outputs.quality-gate }}
+  recommended-authority:
+    description: Maximum authority recommended from observable evidence.
+    value: ${{ steps.audit.outputs.recommended-authority }}
+  report-path:
+    description: Absolute path to the generated report.
+    value: ${{ steps.audit.outputs.report-path }}
+runs:
+  using: composite
+  steps:
+    - id: audit
+      shell: bash
+      env:
+        RUNG_ROOT: ${{ inputs.root }}
+        RUNG_MINIMUM_SCORE: ${{ inputs.minimum-score }}
+        RUNG_REQUIRE_GATE: ${{ inputs.require-gate }}
+        RUNG_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        RUNG_REPORT_PATH: ${{ inputs.report-path }}
+      run: |
+        set -euo pipefail
+        case "$RUNG_OUTPUT_FORMAT" in json|text) ;; *) echo "output-format must be json or text" >&2; exit 2 ;; esac
+        case "$RUNG_REQUIRE_GATE" in true|false) ;; *) echo "require-gate must be true or false" >&2; exit 2 ;; esac
+        paths_file="${RUNNER_TEMP}/rung-action-paths"
+        python3 - "$paths_file" <<'PY'
+        import os
+        import sys
+        from pathlib import Path
+
+        workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+        for name in ("RUNG_ROOT", "RUNG_REPORT_PATH"):
+            if any(ord(char) < 32 for char in os.environ[name]):
+                raise SystemExit(f"{name.lower().replace('_', '-')} contains a control character")
+        root = (workspace / os.environ["RUNG_ROOT"]).resolve()
+        report = (workspace / os.environ["RUNG_REPORT_PATH"]).resolve()
+        for name, path in (("root", root), ("report-path", report)):
+            try:
+                path.relative_to(workspace)
+            except ValueError:
+                raise SystemExit(f"{name} must remain within GITHUB_WORKSPACE")
+        if not root.is_dir():
+            raise SystemExit("root must name an existing directory within GITHUB_WORKSPACE")
+        for directory, directories, files in os.walk(root, followlinks=False):
+            for name in directories + files:
+                if (Path(directory) / name).is_symlink():
+                    raise SystemExit("root must not contain symlinks")
+        Path(sys.argv[1]).write_text(f"{root}\n{report}\n", encoding="utf-8")
+        PY
+        { IFS= read -r audit_root; IFS= read -r report_path; } < "$paths_file"
+        mkdir -p "$(dirname "$report_path")"
+        json_path="${RUNNER_TEMP}/rung-report.json"
+        python3 "$GITHUB_ACTION_PATH/rung-cli.py" --root "$audit_root" --json > "$json_path" || audit_status=$?
+        audit_status="${audit_status:-0}"
+        python3 - "$json_path" "$report_path" "$RUNG_OUTPUT_FORMAT" <<'PY'
+        import json, pathlib, sys
+        report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+        destination = pathlib.Path(sys.argv[2])
+        if sys.argv[3] == "json":
+            destination.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        else:
+            destination.write_text("Rung score: {score}/100\nGrade: {grade}\nQuality gate: {quality_gate}\nRecommended authority: {authority}\n".format(**report), encoding="utf-8")
+        for key in ("score", "grade", "quality_gate", "authority"):
+            print(f"{key}={report[key]}")
+        PY
+        while IFS='=' read -r key value; do
+          case "$key" in score) echo "score=$value" >> "$GITHUB_OUTPUT" ;; grade) echo "grade=$value" >> "$GITHUB_OUTPUT" ;; quality_gate) echo "quality-gate=$value" >> "$GITHUB_OUTPUT" ;; authority) echo "recommended-authority=$value" >> "$GITHUB_OUTPUT" ;; esac
+        done < <(python3 - "$json_path" <<'PY'
+        import json, pathlib, sys
+        report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+        print(f"score={report['score']}")
+        print(f"grade={report['grade']}")
+        print(f"quality_gate={report['quality_gate']}")
+        print(f"authority={report['authority']}")
+        PY
+        )
+        echo "report-path=$report_path" >> "$GITHUB_OUTPUT"
+        cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+        ## Rung governance evidence audit
+
+        - Score: $(python3 -c "import json; print(json.load(open('$json_path'))['score'])")/100
+        - Grade: $(python3 -c "import json; print(json.load(open('$json_path'))['grade'])")
+        - Quality gate: $(python3 -c "import json; print(json.load(open('$json_path'))['quality_gate'])")
+        - Recommended authority: $(python3 -c "import json; print(json.load(open('$json_path'))['authority'])")
+        EOF
+        python3 - "$json_path" "$RUNG_MINIMUM_SCORE" "$RUNG_REQUIRE_GATE" "$audit_status" <<'PY'
+        import json, sys
+        report = json.load(open(sys.argv[1], encoding="utf-8"))
+        try:
+            minimum = int(sys.argv[2])
+        except ValueError:
+            raise SystemExit("minimum-score must be an integer")
+        if not 0 <= minimum <= 100:
+            raise SystemExit("minimum-score must be between 0 and 100")
+        if report["score"] < minimum:
+            raise SystemExit(f"Rung score {report['score']} is below required minimum {minimum}")
+        if sys.argv[3] == "true" and report["quality_gate"] != "PASS":
+            raise SystemExit(f"Rung quality gate is {report['quality_gate']}")
+        if int(sys.argv[4]) not in (0, 1):
+            raise SystemExit("Rung audit failed before producing a valid report")
+        PY
+branding:
+  icon: shield
+  color: purple

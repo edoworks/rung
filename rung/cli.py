@@ -99,31 +99,13 @@ def main() -> int:
     parser.add_argument("--repository", help="Stable repository identifier for the result digest")
     parser.add_argument("--timestamp", help="Explicit RFC 3339 report timestamp for deterministic rendering")
     parser.add_argument("--json", action="store_true", help="Output JSON instead of text")
-    parser.add_argument("--preview", action="store_true", help="Output free preview JSON")
-    parser.add_argument("--html", action="store_true", help="Output full HTML report")
-    parser.add_argument("--pdf", action="store_true", help="Output PDF (requires weasyprint)")
     parser.add_argument("-o", "--output", help="Write output to file instead of stdout")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
     result = run_audit(root, commit_sha=args.commit_sha, repository=args.repository, timestamp=args.timestamp)
 
-    if args.preview:
-        from rung.renderer import render_preview
-        output = json.dumps(render_preview(result), indent=2)
-    elif args.html:
-        from rung.renderer import render_html
-        output = render_html(result)
-    elif args.pdf:
-        from rung.renderer import render_pdf_data
-        pdf_bytes = render_pdf_data(result)
-        if args.output:
-            Path(args.output).write_bytes(pdf_bytes)
-            return 0 if result.quality_gate == "PASS" else 1
-        else:
-            sys.stdout.buffer.write(pdf_bytes)
-            return 0 if result.quality_gate == "PASS" else 1
-    elif args.json:
+    if args.json:
         output = json.dumps(result_to_dict(result), indent=2)
     else:
         output = format_report(result)

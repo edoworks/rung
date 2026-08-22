@@ -58,6 +58,15 @@ class TestSingleFile(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("40 lowercase hex", result.stderr)
 
+    def test_report_exports_are_not_available(self):
+        for report_format in ("--preview", "--html", "--pdf"):
+            result = subprocess.run(
+                [sys.executable, str(ARTIFACT), report_format],
+                cwd=ROOT, text=True, capture_output=True, check=False,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("unrecognized arguments", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,6 +50,9 @@ def main() -> int:
     assert "pypa/gh-action-pypi-publish" in workflow
     assert "--require-hashes -r requirements-release.txt" in workflow
     assert "python -m build --no-isolation" in workflow
+    assert "SOURCE_DATE_EPOCH" in workflow
+    assert "diff -r dist/packages-a dist/packages-b" in workflow
+    assert "normalize_sdist.py --dist dist/packages-a" in workflow
     assert "password:" not in workflow
     for mutable in ("@v4", "@v5", "@v2", "@release/v1"):
         assert mutable not in workflow

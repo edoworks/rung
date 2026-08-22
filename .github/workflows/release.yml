@@ -40,7 +40,16 @@ jobs:
             echo "tag version does not match pyproject.toml" >&2
             exit 1
           }
-      - run: python -m build --no-isolation --outdir dist/packages
+      - name: Build reproducible package artifacts twice
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python -m build --no-isolation --outdir dist/packages-a
+          python -m build --no-isolation --outdir dist/packages-b
+          python scripts/normalize_sdist.py --dist dist/packages-a
+          python scripts/normalize_sdist.py --dist dist/packages-b
+          diff -r dist/packages-a dist/packages-b
+          mv dist/packages-a dist/packages
+          rm -rf dist/packages-b
       - run: python scripts/build_single_file.py --output dist/rung-cli.py
       - run: python scripts/release_artifacts.py --dist dist
       - name: Clean-install the built wheel

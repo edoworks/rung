@@ -50,6 +50,9 @@ class DistributionContractTest(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         self.assertIn("--require-hashes -r requirements-release.txt", workflow)
         self.assertIn("python -m build --no-isolation", workflow)
+        self.assertIn("SOURCE_DATE_EPOCH", workflow)
+        self.assertIn("diff -r dist/packages-a dist/packages-b", workflow)
+        self.assertIn("normalize_sdist.py --dist dist/packages-a", workflow)
 
 
 if __name__ == "__main__":

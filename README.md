@@ -1,12 +1,12 @@
 # Rung — AI Agent Governance Audit
 
-Score your repository's readiness for AI coding agent governance.
+Know how much authority to give coding agents before they touch your repository.
 
-Rung checks 11 governance dimensions using a six-state evidence maturity
-model (absent, claimed, detected, enforced, verified, unobservable), produces
-a numeric score (0–100), a letter grade (A–E), a quality gate verdict
-(PASS/FAIL), a maximum recommended agent authority, and actionable next
-steps for each gap found.
+Rung evaluates 11 repository-evidence checks informed by NIST AI RMF,
+agents.md, SLSA, and published engineering practices. It uses a six-state
+evidence maturity model (absent, claimed, detected, enforced, verified,
+unobservable), then reports a repository governance-evidence score, quality
+gate, maximum recommended agent authority, and actionable next steps.
 
 ## Quick start
 
@@ -132,6 +132,11 @@ cd rung
 python3 -m rung --root .
 ```
 
+### Package registry
+
+PyPI publication is planned but not yet available. Until a signed release is
+published, install from a pinned source revision or use the standalone artifact.
+
 ### Standalone artifact
 
 `rung-cli.py` is generated from the canonical modular package and runs with
@@ -160,6 +165,19 @@ model prose, is the authoritative evidence.
 
 ## Use in CI
 
+Rung's GitHub Action is planned but not yet published to Marketplace. After a
+tagged release, pin the action to a release tag or commit SHA and use its
+read-only interface:
+
+```yaml
+- uses: edoworks/rung@v0.3.0
+  with:
+    minimum-score: 70
+    require-gate: true
+```
+
+For source-based CI before publication:
+
 ```yaml
 # .github/workflows/governance-audit.yml
 name: Governance Audit
@@ -175,7 +193,7 @@ jobs:
           python-version: '3.11'
       - name: Run Rung governance audit
         run: |
-          pip install -e .
+          pip install .
           python3 -m rung --root . --json > audit.json
           SCORE=$(python3 -c "import json; print(json.load(open('audit.json'))['score'])")
           echo "Governance score: $SCORE/100"
@@ -214,7 +232,7 @@ proof, compliance, or legal advice.
 
 ## Sponsor
 
-If Rung helps your team, consider [sponsoring on GitHub](https://github.com/sponsors/edoworks).
+If Rung helps your team, consider [supporting Edoworks OSS](https://rung.edoworks.com).
 
 ## License
 

@@ -1,0 +1,117 @@
+name: Release Rung
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s tests
+      - run: python scripts/build_single_file.py --check
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --require-hashes -r requirements-release.txt
+      - name: Require a matching tag version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          test "${GITHUB_REF_NAME#v}" = "$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")" || {
+            echo "tag version does not match pyproject.toml" >&2
+            exit 1
+          }
+      - name: Build reproducible package artifacts twice
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          python -m build --no-isolation --outdir dist/packages-a
+          python -m build --no-isolation --outdir dist/packages-b
+          python scripts/normalize_sdist.py --dist dist/packages-a
+          python scripts/normalize_sdist.py --dist dist/packages-b
+          diff -r dist/packages-a dist/packages-b
+          mv dist/packages-a dist/packages
+          rm -rf dist/packages-b
+      - run: python scripts/build_single_file.py --output dist/rung-cli.py
+      - run: python scripts/release_artifacts.py --dist dist
+      - name: Clean-install the built wheel
+        run: |
+          python -m venv /tmp/rung-wheel
+          /tmp/rung-wheel/bin/pip install dist/packages/*.whl
+          /tmp/rung-wheel/bin/rung --root tests/fixtures/excellent_public_evidence --json > /tmp/wheel.json || test $? -eq 1
+      - name: Verify modular and standalone parity
+        run: |
+          python -m rung --root tests/fixtures/excellent_public_evidence --json > /tmp/modular.json || test $? -eq 1
+          python dist/rung-cli.py --root tests/fixtures/excellent_public_evidence --json > /tmp/standalone.json || test $? -eq 1
+          python -c "import json; a=json.load(open('/tmp/modular.json')); b=json.load(open('/tmp/standalone.json')); a.pop('timestamp', None); b.pop('timestamp', None); a.pop('report_data_sha256', None); b.pop('report_data_sha256', None); assert a == b"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rung-release-artifacts
+          path: dist/**
+
+  attest:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      attestations: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rung-release-artifacts
+          path: dist/
+      - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
+        with:
+          subject-path: dist/**
+  github-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: attest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rung-release-artifacts
+          path: dist/
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: dist/**
+
+  publish-pypi:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [attest, github-release]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rung-audit
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rung-release-artifacts
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: dist/packages/

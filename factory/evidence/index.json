@@ -14,6 +14,25 @@
         "GitHub branch protection and required checks are not observable from repository contents",
         "The verification gate remains unobservable and requires owner_evidence_required authority"
       ]
+    },
+    {
+      "id": "issue-3-agent-policy-detection",
+      "work_item": "GitHub issue #3",
+      "scope": "recognize substantive flexible Markdown agent policies without crediting heading-only placeholders",
+      "verification": [
+        "python3 -m pytest tests/",
+        "python3 scripts/build_single_file.py --check",
+        "python3 -m rung --root . --json",
+        "git diff --check"
+      ],
+      "result": "passed",
+      "observations": [
+        "Local Commands and Never-Rules sections with instructions are detected",
+        "heading-only, numbered, task-list, fenced/indented-code heading, and vague-prose policies remain claimed",
+        "ATX and Setext policy headings are supported",
+        "modular and generated standalone implementations are synchronized",
+        "66 tests passed after independent-review remediation"
+      ]
     }
   ]
 }

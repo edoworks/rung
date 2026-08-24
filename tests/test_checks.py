@@ -5,6 +5,7 @@ negative, and deceptive repository states. The objective is not
 merely coverage; it is resisting false confidence.
 """
 
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -16,8 +17,76 @@ from rung.checks.evidence_traceability import check_evidence_traceability
 from rung.checks.build_commands import check_build_commands
 from rung.checks.security_never_rules import check_security_never_rules
 from rung.checks.file_size import check_file_size
+from rung.checks.agent_policy import check_agent_policy
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class TestAgentPolicy(unittest.TestCase):
+    def test_flexible_structured_policy_is_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "AGENTS.md").write_text(
+                "# Agent Map\n\n## Local Commands\n\n```bash\npython3 -m pytest tests/\n```\n\n"
+                "## Never-Rules\n\n- Never commit credentials.\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(check_agent_policy(root).state, EvidenceState.DETECTED)
+
+    def test_heading_only_placeholders_are_claimed(self):
+        for content in ("# TODO\n", "# Agent Policy\n"):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "AGENTS.md").write_text(content, encoding="utf-8")
+                self.assertEqual(check_agent_policy(root).state, EvidenceState.CLAIMED)
+
+    def test_required_headings_without_instructions_are_claimed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "AGENTS.md").write_text("## Build & Test\n\n## Security\n", encoding="utf-8")
+            self.assertEqual(check_agent_policy(root).state, EvidenceState.CLAIMED)
+
+    def test_fenced_headings_are_not_policy_sections(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "AGENTS.md").write_text(
+                "# Notes\n```markdown\n## Build & Test\npython3 -m pytest tests/\n"
+                "## Security\nNever commit credentials.\n```\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(check_agent_policy(root).state, EvidenceState.CLAIMED)
+
+    def test_indented_and_mismatched_fenced_headings_are_not_sections(self):
+        policies = (
+            "    ## Build & Test\n    python3 -m pytest tests/\n    ## Security\n    Never commit credentials.\n",
+            "````markdown\n## Build & Test\npython3 -m pytest tests/\n```\n"
+            "## Security\nNever commit credentials.\n````\n",
+        )
+        for content in policies:
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "AGENTS.md").write_text(content, encoding="utf-8")
+                self.assertEqual(check_agent_policy(root).state, EvidenceState.CLAIMED)
+
+    def test_list_placeholders_and_vague_prose_are_claimed(self):
+        for content in (
+            "## Build & Test\n1. TODO\n## Security\n- [ ] TBD\n",
+            "## Build & Test\nRead the manual.\n## Security\nBe careful.\n",
+        ):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "AGENTS.md").write_text(content, encoding="utf-8")
+                self.assertEqual(check_agent_policy(root).state, EvidenceState.CLAIMED)
+
+    def test_setext_policy_sections_are_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "AGENTS.md").write_text(
+                "Local Commands\n--------------\npython3 -m pytest tests/\n\n"
+                "Never-Rules\n===========\nNever commit credentials.\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(check_agent_policy(root).state, EvidenceState.DETECTED)
 
 
 class TestVerificationGate(unittest.TestCase):

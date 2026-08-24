@@ -31,7 +31,7 @@
         "heading-only, numbered, task-list, fenced/indented-code heading, and vague-prose policies remain claimed",
         "ATX and Setext policy headings are supported",
         "modular and generated standalone implementations are synchronized",
-        "66 tests passed after independent-review remediation"
+        "53 tests passed on the current main baseline after independent-review remediation"
       ]
     }
   ]

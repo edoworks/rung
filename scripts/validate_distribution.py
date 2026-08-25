@@ -22,6 +22,17 @@ def main() -> int:
     assert manifest["evidence"]["external_adoption"] == "unverified"
     assert manifest["evidence"]["benchmark"] == "pending"
 
+    pyproject = read(ROOT / "pyproject.toml")
+    for required in (
+        'description = "Assess observable repository evidence for responsible AI coding-agent authority"',
+        'readme = "README.md"',
+        'Homepage = "https://rung.edoworks.com/"',
+        'Repository = "https://github.com/edoworks/rung"',
+        'Issues = "https://github.com/edoworks/rung/issues"',
+        'Changelog = "https://github.com/edoworks/rung/releases"',
+    ):
+        assert required in pyproject
+
     channels = {channel["id"]: channel for channel in manifest["channels"]}
     assert channels["website"]["status"] == "available"
     for channel in ("github-release", "pypi", "github-actions"):
@@ -57,6 +68,20 @@ def main() -> int:
     for mutable in ("@v4", "@v5", "@v2", "@release/v1"):
         assert mutable not in workflow
     assert "github-release:" in workflow and "  attest:" in workflow
+    assert "release tag must bind the exact current origin/main revision" in workflow
+    assert "release tag must be strict vMAJOR.MINOR.PATCH" in workflow
+    assert "group: release" in workflow
+    assert "name: release" in workflow
+    assert "body_path: dist/release-notes.md" in workflow
+    assert "fail_on_unmatched_files: true" in workflow
+    assert "remote release tag moved after build" in workflow
+    assert "reviewed main moved after release build" in workflow
+    assert "release tag must be annotated" in workflow
+    release_notes = read(ROOT / "docs" / "releases" / "v0.3.0.md")
+    assert "public repository evidence" in release_notes
+    assert "not certification" in release_notes
+    assert "paid report is not launched" in release_notes
+    assert "does not establish that any registry or release channel completed publication" in " ".join(release_notes.split())
     print("Rung distribution contract validated.")
     return 0
 

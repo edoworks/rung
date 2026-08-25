@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   test:
     strategy:
@@ -18,6 +22,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python }}
@@ -29,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
@@ -36,8 +44,21 @@ jobs:
       - name: Require a matching tag version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          test "${GITHUB_REF_NAME#v}" = "$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")" || {
+          python -c "import re, sys; sys.exit(0 if re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', sys.argv[1]) else 1)" "$GITHUB_REF_NAME" || {
+            echo "release tag must be strict vMAJOR.MINOR.PATCH" >&2
+            exit 1
+          }
+          version="$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")"
+          test "${GITHUB_REF_NAME#v}" = "$version" || {
             echo "tag version does not match pyproject.toml" >&2
+            exit 1
+          }
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
+            echo "release tag must bind the exact current origin/main revision" >&2
+            exit 1
+          }
+          test -f "docs/releases/v${version}.md" || {
+            echo "version-matched release notes are missing" >&2
             exit 1
           }
       - name: Build reproducible package artifacts twice
@@ -51,6 +72,10 @@ jobs:
           mv dist/packages-a dist/packages
           rm -rf dist/packages-b
       - run: python scripts/build_single_file.py --output dist/rung-cli.py
+      - name: Bind versioned release notes
+        run: |
+          version="$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")"
+          cp "docs/releases/v${version}.md" dist/release-notes.md
       - run: python scripts/release_artifacts.py --dist dist
       - name: Clean-install the built wheel
         run: |
@@ -86,9 +111,32 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: attest
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://github.com/edoworks/rung/releases
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Recheck protected release identity
+        run: |
+          remote_tag="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}^{}" | cut -f1)"
+          test -n "$remote_tag" || {
+            echo "release tag must be annotated" >&2
+            exit 1
+          }
+          test "$remote_tag" = "$GITHUB_SHA" || {
+            echo "remote release tag moved after build" >&2
+            exit 1
+          }
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA" || {
+            echo "reviewed main moved after release build" >&2
+            exit 1
+          }
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: rung-release-artifacts
@@ -97,6 +145,8 @@ jobs:
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: dist/**
+          body_path: dist/release-notes.md
+          fail_on_unmatched_files: true
 
   publish-pypi:
     if: startsWith(github.ref, 'refs/tags/')

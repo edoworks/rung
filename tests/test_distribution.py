@@ -54,6 +54,38 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("diff -r dist/packages-a dist/packages-b", workflow)
         self.assertIn("normalize_sdist.py --dist dist/packages-a", workflow)
 
+    def test_package_metadata_has_canonical_public_urls(self):
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        self.assertIn('description = "Assess observable repository evidence for responsible AI coding-agent authority"', pyproject)
+        self.assertIn('readme = "README.md"', pyproject)
+        self.assertIn('Homepage = "https://rung.edoworks.com/"', pyproject)
+        self.assertIn('Repository = "https://github.com/edoworks/rung"', pyproject)
+        self.assertIn('Issues = "https://github.com/edoworks/rung/issues"', pyproject)
+        self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
+
+    def test_first_release_notes_preserve_authority_and_commercial_limits(self):
+        notes = (ROOT / "docs" / "releases" / "v0.3.0.md").read_text(encoding="utf-8")
+        self.assertIn("public repository evidence", notes)
+        self.assertIn("not certification", notes)
+        self.assertIn("paid report is not launched", notes)
+        self.assertNotIn("external adoption", notes.lower())
+        self.assertIn(
+            "does not establish that any registry or release channel completed publication",
+            " ".join(notes.split()),
+        )
+
+    def test_release_is_serialized_main_bound_and_uses_reviewed_notes(self):
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("group: release", workflow)
+        self.assertIn("release tag must be strict vMAJOR.MINOR.PATCH", workflow)
+        self.assertIn("release tag must bind the exact current origin/main revision", workflow)
+        self.assertIn("name: release", workflow)
+        self.assertIn("body_path: dist/release-notes.md", workflow)
+        self.assertIn("fail_on_unmatched_files: true", workflow)
+        self.assertIn("remote release tag moved after build", workflow)
+        self.assertIn("reviewed main moved after release build", workflow)
+        self.assertIn("release tag must be annotated", workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -134,8 +134,17 @@ python3 -m rung --root .
 
 ### Package registry
 
-PyPI publication is planned but not yet available. Until a signed release is
-published, install from a pinned source revision or use the standalone artifact.
+The release workflow is configured to publish tagged releases to PyPI through
+GitHub Actions OIDC Trusted Publishing. For a version observed on PyPI, install
+the exact version rather than an unbounded dependency:
+
+```bash
+python3 -m pip install "rung-audit==0.3.0"
+```
+
+If that version is not yet visible on PyPI, install from a pinned source
+revision or use the standalone artifact. A Git tag or workflow run alone is not
+proof that registry publication succeeded.
 
 ### Standalone artifact
 

@@ -56,14 +56,23 @@ def main() -> int:
     assert "must not be rewritten to appear successful" in " ".join(skill.split())
 
     workflow = read(ROOT / ".github" / "workflows" / "release.yml")
-    for required in ("python -m build", "pip install", "rung-cli.py", "release_artifacts.py", "attest-build-provenance", "id-token: write", "tag version does not match pyproject.toml"):
+    for required in ("validate_release.py --dist dist", "attest-build-provenance", "id-token: write", "tag version does not match pyproject.toml"):
         assert required in workflow
     assert "pypa/gh-action-pypi-publish" in workflow
     assert "--require-hashes -r requirements-release.txt" in workflow
-    assert "python -m build --no-isolation" in workflow
-    assert "SOURCE_DATE_EPOCH" in workflow
-    assert "diff -r dist/packages-a dist/packages-b" in workflow
-    assert "normalize_sdist.py --dist dist/packages-a" in workflow
+    release_validator = read(ROOT / "scripts" / "validate_release.py")
+    for required in (
+        "SOURCE_DATE_EPOCH",
+        '"-m", "build", "--no-isolation"',
+        "normalize_sdist.py",
+        "compare_trees(build_a, build_b)",
+        "release_artifacts.py",
+        '"--no-deps"',
+        '"--no-index"',
+        '"PYTHONPATH"',
+        'for name in ("wheel.json", "modular.json", "standalone.json")',
+    ):
+        assert required in release_validator
     assert "password:" not in workflow
     for mutable in ("@v4", "@v5", "@v2", "@release/v1"):
         assert mutable not in workflow

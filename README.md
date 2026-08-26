@@ -160,6 +160,14 @@ python3 scripts/build_single_file.py --check
 The generator embeds a digest of all package sources and emits deterministic
 bytes. Do not edit `rung-cli.py` directly.
 
+### Release validation
+
+Contributors can build and validate the complete release artifact set locally:
+
+```bash
+python3 scripts/validate_release.py --dist dist
+```
+
 ### Agent skill
 
 Install the reproducible-verification workflow with the skills CLI:

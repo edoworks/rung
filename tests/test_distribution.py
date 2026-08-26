@@ -49,10 +49,20 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("contains a control character", action)
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         self.assertIn("--require-hashes -r requirements-release.txt", workflow)
-        self.assertIn("python -m build --no-isolation", workflow)
-        self.assertIn("SOURCE_DATE_EPOCH", workflow)
-        self.assertIn("diff -r dist/packages-a dist/packages-b", workflow)
-        self.assertIn("normalize_sdist.py --dist dist/packages-a", workflow)
+        self.assertIn("python scripts/validate_release.py --dist dist", workflow)
+        release_validator = (ROOT / "scripts" / "validate_release.py").read_text(encoding="utf-8")
+        for required in (
+            "SOURCE_DATE_EPOCH",
+            '"-m", "build", "--no-isolation"',
+            "normalize_sdist.py",
+            "compare_trees(build_a, build_b)",
+            "release_artifacts.py",
+            '"--no-deps"',
+            '"--no-index"',
+            '"PYTHONPATH"',
+            'for name in ("wheel.json", "modular.json", "standalone.json")',
+        ):
+            self.assertIn(required, release_validator)
         self.assertIn("pull_request:", workflow)
         self.assertIn("release-gate:", workflow)
         self.assertIn("needs: [test, build]", workflow)
@@ -89,6 +99,44 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("remote release tag moved after build", workflow)
         self.assertIn("reviewed main moved after release build", workflow)
         self.assertIn("release tag must be annotated", workflow)
+
+    def test_release_validator_rejects_output_outside_repository(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run(
+                [sys.executable, "scripts/validate_release.py", "--dist", directory],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("inside the repository", result.stderr)
+
+    def test_release_validator_preserves_unknown_output_content(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            marker = Path(directory) / "keep.txt"
+            marker.write_text("not a release artifact\n", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, "scripts/validate_release.py", "--dist", directory],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertTrue(marker.is_file())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unknown dist content", result.stderr)
+
+    def test_release_checksums_include_sbom(self):
+        with tempfile.TemporaryDirectory() as directory:
+            dist = Path(directory)
+            (dist / "artifact.txt").write_text("release artifact\n", encoding="utf-8")
+            subprocess.run(
+                [sys.executable, "scripts/release_artifacts.py", "--dist", directory],
+                cwd=ROOT,
+                check=True,
+            )
+            checksums = (dist / "checksums.txt").read_text(encoding="utf-8")
+        self.assertIn("  artifact.txt\n", checksums)
+        self.assertIn("  sbom.cdx.json\n", checksums)
 
 
 if __name__ == "__main__":

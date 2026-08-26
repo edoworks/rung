@@ -64,7 +64,7 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
 
     def test_first_release_notes_preserve_authority_and_commercial_limits(self):
-        notes = (ROOT / "docs" / "releases" / "v0.3.0.md").read_text(encoding="utf-8")
+        notes = (ROOT / "docs" / "releases" / "v0.3.1.md").read_text(encoding="utf-8")
         self.assertIn("public repository evidence", notes)
         self.assertIn("not certification", notes)
         self.assertIn("paid report is not launched", notes)

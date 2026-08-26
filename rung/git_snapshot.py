@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import os
-import selectors
 import stat
 import subprocess
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -21,6 +21,7 @@ MAX_BLOB_BYTES = 16 * 1024 * 1024
 MAX_TOTAL_BYTES = 128 * 1024 * 1024
 MAX_STDERR_BYTES = 64 * 1024
 GIT_TIMEOUT_SECONDS = 30
+PIPE_DRAIN_SECONDS = 1
 GIT_PREFIX = [
     "git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null",
     "-c", "protocol.ext.allow=never",
@@ -53,37 +54,58 @@ def run_git(root: Path, args: tuple[str, ...], max_stdout: int) -> bytes:
         )
     except OSError as exc:
         raise SnapshotError(f"cannot run git: {exc}") from exc
-    selector = selectors.DefaultSelector()
     assert process.stdout is not None and process.stderr is not None
-    selector.register(process.stdout, selectors.EVENT_READ, (stdout_buffer, max_stdout))
-    selector.register(process.stderr, selectors.EVENT_READ, (stderr_buffer, MAX_STDERR_BYTES))
-    deadline = time.monotonic() + GIT_TIMEOUT_SECONDS
+    overflow = threading.Event()
+    reader_errors: list[OSError] = []
+    error_lock = threading.Lock()
+
+    def drain(stream, buffer: bytearray, limit: int) -> None:
+        try:
+            while chunk := stream.read(65_536):
+                if len(buffer) + len(chunk) > limit:
+                    overflow.set()
+                    try:
+                        process.kill()
+                    except OSError:
+                        pass
+                    continue
+                buffer.extend(chunk)
+        except OSError as exc:
+            with error_lock:
+                reader_errors.append(exc)
+            try:
+                process.kill()
+            except OSError:
+                pass
+        finally:
+            stream.close()
+
+    readers = [
+        threading.Thread(name="rung-git-stdout", target=drain, args=(process.stdout, stdout_buffer, max_stdout), daemon=True),
+        threading.Thread(name="rung-git-stderr", target=drain, args=(process.stderr, stderr_buffer, MAX_STDERR_BYTES), daemon=True),
+    ]
+    for reader in readers:
+        reader.start()
+    timed_out = False
     try:
-        while selector.get_map():
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise SnapshotError("git command timed out")
-            events = selector.select(remaining)
-            if not events:
-                raise SnapshotError("git command timed out")
-            for key, _ in events:
-                chunk = os.read(key.fd, 65_536)
-                buffer, limit = key.data
-                if not chunk:
-                    selector.unregister(key.fileobj)
-                else:
-                    buffer.extend(chunk)
-                    if len(buffer) > limit:
-                        raise SnapshotError("git output exceeds safety bound")
-        returncode = process.wait(timeout=max(0.1, deadline - time.monotonic()))
-    except Exception:
+        returncode = process.wait(timeout=GIT_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        timed_out = True
         process.kill()
-        process.wait()
-        raise
+        returncode = process.wait()
     finally:
-        selector.close()
-        process.stdout.close()
-        process.stderr.close()
+        drain_deadline = time.monotonic() + PIPE_DRAIN_SECONDS
+        for reader in readers:
+            reader.join(max(0, drain_deadline - time.monotonic()))
+    pipes_open = tuple(reader.name for reader in readers if reader.is_alive())
+    if timed_out:
+        raise SnapshotError("git command timed out")
+    if reader_errors:
+        raise SnapshotError(f"cannot read git output: {reader_errors[0]}")
+    if overflow.is_set():
+        raise SnapshotError("git output exceeds safety bound")
+    if pipes_open:
+        raise SnapshotError("git output pipes did not close")
     if returncode:
         message = stderr_buffer.decode("utf-8", "replace").strip()
         raise SnapshotError(f"git command failed: {message or args[0]}")

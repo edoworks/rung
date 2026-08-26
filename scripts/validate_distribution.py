@@ -77,7 +77,7 @@ def main() -> int:
     assert "remote release tag moved after build" in workflow
     assert "reviewed main moved after release build" in workflow
     assert "release tag must be annotated" in workflow
-    release_notes = read(ROOT / "docs" / "releases" / "v0.3.0.md")
+    release_notes = read(ROOT / "docs" / "releases" / "v0.3.1.md")
     assert "public repository evidence" in release_notes
     assert "not certification" in release_notes
     assert "paid report is not launched" in release_notes

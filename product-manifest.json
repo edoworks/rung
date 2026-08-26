@@ -8,8 +8,8 @@
   "value_proposition": "Determine the maximum responsible authority for coding agents from observable repository governance evidence.",
   "artifacts": ["python-package", "standalone-python", "github-action", "agent-skill", "html-report"],
   "channels": [
-    {"id": "github-release", "type": "direct", "status": "planned"},
-    {"id": "pypi", "type": "registry", "status": "planned"},
+    {"id": "github-release", "type": "direct", "status": "available", "url": "https://github.com/edoworks/rung/releases/tag/v0.3.1"},
+    {"id": "pypi", "type": "registry", "status": "available", "url": "https://pypi.org/project/rung-audit/0.3.1/"},
     {"id": "github-actions", "type": "marketplace", "status": "planned"},
     {"id": "skills-sh", "type": "directory", "status": "planned"},
     {"id": "website", "type": "direct", "status": "available", "url": "https://rung.edoworks.com/"}

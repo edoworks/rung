@@ -251,9 +251,17 @@ preserved in receipts and replay observations. Unsigned reproducibility
 evidence is not attestation, certification, enforcement proof, correctness
 proof, compliance, or legal advice.
 
-## Sponsor
+## Support open-source maintenance
 
-If Rung helps your team, consider [supporting Edoworks OSS](https://rung.edoworks.com).
+Rung remains free and MIT-licensed. These monthly contributions support
+ongoing Edoworks open-source maintenance:
+
+- [$1 Support](https://buy.stripe.com/14A00j2zx4wr5aSc1l9AA07)
+- [$3 Sustain](https://buy.stripe.com/dRm8wP2zxd2X32KaXh9AA08)
+- [$8 Maintain](https://buy.stripe.com/5kQfZheif1kf6eW5CX9AA09)
+
+`support_revenue_not_product_revenue`: support provides no product access,
+priority support, or promised feature.
 
 ## License
 

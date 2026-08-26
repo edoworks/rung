@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -21,7 +22,8 @@ class DistributionContractTest(unittest.TestCase):
         self.assertEqual(manifest["builder"], "Edoworks")
         channels = {channel["id"]: channel["status"] for channel in manifest["channels"]}
         self.assertEqual(channels["website"], "available")
-        self.assertEqual(channels["pypi"], "planned")
+        self.assertEqual(channels["github-release"], "available")
+        self.assertEqual(channels["pypi"], "available")
         self.assertEqual(channels["skills-sh"], "planned")
         self.assertEqual(manifest["evidence"]["external_adoption"], "unverified")
 
@@ -76,6 +78,24 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn('Repository = "https://github.com/edoworks/rung"', pyproject)
         self.assertIn('Issues = "https://github.com/edoworks/rung/issues"', pyproject)
         self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
+
+    def test_support_metadata_preserves_tiers_and_no_entitlement(self):
+        links = [
+            "https://buy.stripe.com/14A00j2zx4wr5aSc1l9AA07",
+            "https://buy.stripe.com/dRm8wP2zxd2X32KaXh9AA08",
+            "https://buy.stripe.com/5kQfZheif1kf6eW5CX9AA09",
+        ]
+        funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", funding), links)
+        self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", readme), links)
+        for link in links:
+            self.assertIn(link, funding)
+            self.assertIn(link, readme)
+        self.assertIn("support_revenue_not_product_revenue", readme)
+        self.assertIn("no product access", readme)
+        self.assertIn("priority support", readme)
+        self.assertIn("promised feature", readme)
 
     def test_first_release_notes_preserve_authority_and_commercial_limits(self):
         notes = (ROOT / "docs" / "releases" / "v0.3.1.md").read_text(encoding="utf-8")

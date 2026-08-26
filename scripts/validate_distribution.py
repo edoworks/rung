@@ -35,8 +35,19 @@ def main() -> int:
 
     channels = {channel["id"]: channel for channel in manifest["channels"]}
     assert channels["website"]["status"] == "available"
-    for channel in ("github-release", "pypi", "github-actions"):
-        assert channels[channel]["status"] == "planned"
+    assert channels["github-release"] == {
+        "id": "github-release",
+        "type": "direct",
+        "status": "available",
+        "url": "https://github.com/edoworks/rung/releases/tag/v0.3.1",
+    }
+    assert channels["pypi"] == {
+        "id": "pypi",
+        "type": "registry",
+        "status": "available",
+        "url": "https://pypi.org/project/rung-audit/0.3.1/",
+    }
+    assert channels["github-actions"]["status"] == "planned"
 
     action = read(ROOT / "action.yml")
     for name in ("root", "minimum-score", "require-gate", "output-format", "report-path"):

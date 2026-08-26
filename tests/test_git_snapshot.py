@@ -8,9 +8,10 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from rung.git_snapshot import SnapshotError, run_git
+from rung.git_snapshot import SnapshotError, compare_worktree, materialize, run_git
 
 
 class GitSnapshotTest(unittest.TestCase):
@@ -39,6 +40,15 @@ class GitSnapshotTest(unittest.TestCase):
         self.assertFalse(any(
             thread.name.startswith("rung-git-") for thread in threading.enumerate()
         ))
+
+    def test_native_windows_receipt_filesystem_fails_closed(self):
+        root = Path(".")
+        with patch("rung.git_snapshot.os", SimpleNamespace(name="nt")):
+            with self.assertRaisesRegex(SnapshotError, "POSIX descriptor-relative"):
+                compare_worktree(root, ())
+            with self.assertRaisesRegex(SnapshotError, "POSIX descriptor-relative"):
+                with materialize(()):
+                    self.fail("Windows receipt materialization must not start")
 
 
 if __name__ == "__main__":

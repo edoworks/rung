@@ -241,6 +241,8 @@ def _open_directory(parent_fd: int, name: str) -> int:
 
 
 def compare_worktree(root: Path, snapshot: tuple[SnapshotFile, ...]) -> None:
+    if os.name == "nt":
+        raise SnapshotError("receipt mode requires POSIX descriptor-relative filesystem semantics")
     root_fd = os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
         for entry in snapshot:
@@ -287,6 +289,8 @@ def _write_all(descriptor: int, data: bytes) -> None:
 def materialize(snapshot: tuple[SnapshotFile, ...]) -> Iterator[Path]:
     with tempfile.TemporaryDirectory(prefix="rung-snapshot-") as directory:
         root = Path(directory)
+        if os.name == "nt":
+            raise SnapshotError("receipt mode requires POSIX descriptor-relative filesystem semantics")
         root_fd = os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
         created: set[str] = set()
         try:

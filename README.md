@@ -185,6 +185,10 @@ read-only interface:
     require-gate: true
 ```
 
+Receipt creation and replay require descriptor-relative filesystem semantics
+and therefore fail closed on native Windows. Repository audits remain
+supported on Windows; use Linux, macOS, or WSL for receipt mode.
+
 For source-based CI before publication:
 
 ```yaml

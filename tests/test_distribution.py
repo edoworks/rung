@@ -53,6 +53,10 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("SOURCE_DATE_EPOCH", workflow)
         self.assertIn("diff -r dist/packages-a dist/packages-b", workflow)
         self.assertIn("normalize_sdist.py --dist dist/packages-a", workflow)
+        self.assertIn("pull_request:", workflow)
+        self.assertIn("release-gate:", workflow)
+        self.assertIn("needs: [test, build]", workflow)
+        self.assertIn('test "$TEST_RESULT" = success && test "$BUILD_RESULT" = success', workflow)
 
     def test_package_metadata_has_canonical_public_urls(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

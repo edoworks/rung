@@ -139,7 +139,7 @@ GitHub Actions OIDC Trusted Publishing. For a version observed on PyPI, install
 the exact version rather than an unbounded dependency:
 
 ```bash
-python3 -m pip install "rung-audit==0.3.0"
+python3 -m pip install "rung-audit==0.3.1"
 ```
 
 If that version is not yet visible on PyPI, install from a pinned source
@@ -160,6 +160,14 @@ python3 scripts/build_single_file.py --check
 The generator embeds a digest of all package sources and emits deterministic
 bytes. Do not edit `rung-cli.py` directly.
 
+### Release validation
+
+Contributors can build and validate the complete release artifact set locally:
+
+```bash
+python3 scripts/validate_release.py --dist dist
+```
+
 ### Agent skill
 
 Install the reproducible-verification workflow with the skills CLI:
@@ -179,11 +187,15 @@ tagged release, pin the action to a release tag or commit SHA and use its
 read-only interface:
 
 ```yaml
-- uses: edoworks/rung@v0.3.0
+- uses: edoworks/rung@v0.3.1
   with:
     minimum-score: 70
     require-gate: true
 ```
+
+Receipt creation and replay require descriptor-relative filesystem semantics
+and therefore fail closed on native Windows. Repository audits remain
+supported on Windows; use Linux, macOS, or WSL for receipt mode.
 
 For source-based CI before publication:
 

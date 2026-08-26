@@ -1,6 +1,7 @@
 name: Release Rung
 
 on:
+  pull_request:
   push:
     tags: ["v*"]
   workflow_dispatch:
@@ -9,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -48,7 +49,7 @@ jobs:
             echo "release tag must be strict vMAJOR.MINOR.PATCH" >&2
             exit 1
           }
-          version="$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")"
+          version="$(python -c 'import pathlib; print(next(line.split("=", 1)[1].strip().strip(chr(34)) for line in pathlib.Path("pyproject.toml").read_text().splitlines() if line.startswith("version =")))')"
           test "${GITHUB_REF_NAME#v}" = "$version" || {
             echo "tag version does not match pyproject.toml" >&2
             exit 1
@@ -61,36 +62,22 @@ jobs:
             echo "version-matched release notes are missing" >&2
             exit 1
           }
-      - name: Build reproducible package artifacts twice
-        run: |
-          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
-          python -m build --no-isolation --outdir dist/packages-a
-          python -m build --no-isolation --outdir dist/packages-b
-          python scripts/normalize_sdist.py --dist dist/packages-a
-          python scripts/normalize_sdist.py --dist dist/packages-b
-          diff -r dist/packages-a dist/packages-b
-          mv dist/packages-a dist/packages
-          rm -rf dist/packages-b
-      - run: python scripts/build_single_file.py --output dist/rung-cli.py
-      - name: Bind versioned release notes
-        run: |
-          version="$(python -c "import pathlib; print(next(line.split('=', 1)[1].strip().strip(chr(34)) for line in pathlib.Path('pyproject.toml').read_text().splitlines() if line.startswith('version ='))")"
-          cp "docs/releases/v${version}.md" dist/release-notes.md
-      - run: python scripts/release_artifacts.py --dist dist
-      - name: Clean-install the built wheel
-        run: |
-          python -m venv /tmp/rung-wheel
-          /tmp/rung-wheel/bin/pip install dist/packages/*.whl
-          /tmp/rung-wheel/bin/rung --root tests/fixtures/excellent_public_evidence --json > /tmp/wheel.json || test $? -eq 1
-      - name: Verify modular and standalone parity
-        run: |
-          python -m rung --root tests/fixtures/excellent_public_evidence --json > /tmp/modular.json || test $? -eq 1
-          python dist/rung-cli.py --root tests/fixtures/excellent_public_evidence --json > /tmp/standalone.json || test $? -eq 1
-          python -c "import json; a=json.load(open('/tmp/modular.json')); b=json.load(open('/tmp/standalone.json')); a.pop('timestamp', None); b.pop('timestamp', None); a.pop('report_data_sha256', None); b.pop('report_data_sha256', None); assert a == b"
+      - run: python scripts/validate_release.py --dist dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: rung-release-artifacts
           path: dist/**
+
+  release-gate:
+    if: always()
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require complete release validation
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: test "$TEST_RESULT" = success && test "$BUILD_RESULT" = success
 
   attest:
     if: startsWith(github.ref, 'refs/tags/')

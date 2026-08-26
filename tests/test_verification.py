@@ -31,6 +31,7 @@ ROOT = Path(__file__).parent.parent
 ARTIFACT = ROOT / "rung-cli.py"
 
 
+@unittest.skipIf(os.name == "nt", "receipt mode fails closed without POSIX descriptor semantics")
 class VerificationTest(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

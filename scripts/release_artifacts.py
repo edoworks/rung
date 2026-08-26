@@ -26,8 +26,6 @@ def main() -> int:
     artifacts = sorted(path for path in dist.rglob("*") if path.is_file() and path.name not in {"checksums.txt", "sbom.cdx.json"})
     if not artifacts:
         raise SystemExit("dist/ contains no release artifacts")
-    checksums = "".join(f"{sha256(path)}  {path.relative_to(dist)}\n" for path in artifacts)
-    (dist / "checksums.txt").write_text(checksums, encoding="utf-8")
     sbom = {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
@@ -35,7 +33,13 @@ def main() -> int:
         "metadata": {"component": {"type": "application", "name": "rung-audit", "version": version, "licenses": [{"license": {"id": "MIT"}}]}},
         "components": [{"type": "file", "name": str(path.relative_to(dist)), "hashes": [{"alg": "SHA-256", "content": sha256(path)}]} for path in artifacts],
     }
-    (dist / "sbom.cdx.json").write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    sbom_path = dist / "sbom.cdx.json"
+    sbom_path.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    checksums = "".join(
+        f"{sha256(path)}  {path.relative_to(dist)}\n"
+        for path in [*artifacts, sbom_path]
+    )
+    (dist / "checksums.txt").write_text(checksums, encoding="utf-8")
     return 0
 
 

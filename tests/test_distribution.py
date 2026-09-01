@@ -79,7 +79,7 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn('Issues = "https://github.com/edoworks/rung/issues"', pyproject)
         self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
 
-    def test_support_metadata_preserves_tiers_and_no_entitlement(self):
+    def test_support_metadata_preserves_context_and_no_entitlement(self):
         links = [
             "https://buy.stripe.com/14A00j2zx4wr5aSc1l9AA07",
             "https://buy.stripe.com/dRm8wP2zxd2X32KaXh9AA08",
@@ -87,10 +87,10 @@ class DistributionContractTest(unittest.TestCase):
         ]
         funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", funding), links)
+        self.assertEqual(funding.strip(), 'custom: ["https://rung.edoworks.com"]')
+        self.assertNotIn("buy.stripe.com", funding)
         self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", readme), links)
         for link in links:
-            self.assertIn(link, funding)
             self.assertIn(link, readme)
         self.assertIn("support_revenue_not_product_revenue", readme)
         self.assertIn("no product access", readme)

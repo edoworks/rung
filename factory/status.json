@@ -1,9 +1,9 @@
 {
   "state": "completed",
   "active_increment": null,
-  "status": "GitHub issue #3 policy detection fix verified after independent review",
+  "status": "INC-147 contextual support links verified after independent review",
   "blockers": [
     "GitHub branch protection and required checks are unobservable without owner evidence"
   ],
-  "last_update": "2026-08-24"
+  "last_update": "2026-09-01"
 }

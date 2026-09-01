@@ -33,6 +33,31 @@
         "modular and generated standalone implementations are synchronized",
         "53 tests passed on the current main baseline after independent-review remediation"
       ]
+    },
+    {
+      "id": "inc-147-contextual-support-links",
+      "work_item": "INC-147",
+      "scope": "reconcile contextual open-source support links under PRD-005@4 without exposing raw payment URLs in funding metadata",
+      "verification": [
+        "RUNG_REPOSITORY_DIR=/Users/hello/rung node scripts/verify-rung-support-increment.mjs",
+        "independent complete-diff trust review"
+      ],
+      "result": "passed",
+      "observations": [
+        "README exposes exactly $1 Support, $3 Sustain, and $8 Maintain with canonical destinations",
+        "README states that support provides no product access, priority support, or promised features",
+        "FUNDING.yml retains only the contextual Rung website destination and contains no raw Stripe payment URL",
+        "support remains support_revenue_not_product_revenue and no contribution, revenue, customer, or adoption is inferred",
+        "63 Rung tests, generated-artifact freshness, Rung self-audit, full factory tests, genesis, and diff checks passed"
+      ],
+      "subjects": [
+        {"path":"README.md","sha256":"4ddf1fe32cea99aa1c980098f00001b562041237a653da68477bcd06c9f118cd"},
+        {"path":".github/FUNDING.yml","sha256":"584309347ab46616015e085b850f4bff3e3cdb644356d82a7f1925607a2869e9"}
+      ],
+      "limitations": [
+        "Stripe-hosted destination content was not live-probed",
+        "GitHub branch protection and required checks remain unobservable without owner evidence"
+      ]
     }
   ]
 }

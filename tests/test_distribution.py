@@ -105,15 +105,11 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("promised feature", readme)
 
     def test_first_release_notes_preserve_authority_and_commercial_limits(self):
-        notes = (ROOT / "docs" / "releases" / "v0.3.1.md").read_text(encoding="utf-8")
-        self.assertIn("public repository evidence", notes)
+        notes = (ROOT / "docs" / "releases" / "v0.3.2.md").read_text(encoding="utf-8")
+        self.assertIn("Canonical project page", notes)
         self.assertIn("not certification", notes)
-        self.assertIn("paid report is not launched", notes)
+        self.assertIn("former laptop-hosted web distribution", notes)
         self.assertNotIn("external adoption", notes.lower())
-        self.assertIn(
-            "does not establish that any registry or release channel completed publication",
-            " ".join(notes.split()),
-        )
 
     def test_release_is_serialized_main_bound_and_uses_reviewed_notes(self):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")

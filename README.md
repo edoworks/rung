@@ -145,7 +145,7 @@ GitHub Actions OIDC Trusted Publishing. For a version observed on PyPI, install
 the exact version rather than an unbounded dependency:
 
 ```bash
-python3 -m pip install "rung-audit==0.3.1"
+python3 -m pip install "rung-audit==0.3.2"
 ```
 
 If that version is not yet visible on PyPI, install from a pinned source
@@ -193,7 +193,7 @@ tagged release, pin the action to a release tag or commit SHA and use its
 read-only interface:
 
 ```yaml
-- uses: edoworks/rung@v0.3.1
+- uses: edoworks/rung@v0.3.2
   with:
     minimum-score: 70
     require-gate: true

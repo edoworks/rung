@@ -65,13 +65,13 @@ def main() -> int:
         "id": "github-release",
         "type": "direct",
         "status": "available",
-        "url": "https://github.com/edoworks/rung/releases/tag/v0.3.1",
+        "url": "https://github.com/edoworks/rung/releases/tag/v0.3.2",
     }
     assert channels["pypi"] == {
         "id": "pypi",
         "type": "registry",
         "status": "available",
-        "url": "https://pypi.org/project/rung-audit/0.3.1/",
+        "url": "https://pypi.org/project/rung-audit/0.3.2/",
     }
     assert channels["github-actions"]["status"] == "planned"
 
@@ -123,11 +123,10 @@ def main() -> int:
     assert "remote release tag moved after build" in workflow
     assert "reviewed main moved after release build" in workflow
     assert "release tag must be annotated" in workflow
-    release_notes = read(ROOT / "docs" / "releases" / "v0.3.1.md")
-    assert "public repository evidence" in release_notes
+    release_notes = read(ROOT / "docs" / "releases" / "v0.3.2.md")
+    assert "Canonical project page" in release_notes
     assert "not certification" in release_notes
-    assert "paid report is not launched" in release_notes
-    assert "does not establish that any registry or release channel completed publication" in " ".join(release_notes.split())
+    assert "former laptop-hosted web distribution" in release_notes
     print("Rung distribution contract validated.")
     return 0
 

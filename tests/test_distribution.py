@@ -81,7 +81,7 @@ class DistributionContractTest(unittest.TestCase):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('description = "Assess observable repository evidence for responsible AI coding-agent authority"', pyproject)
         self.assertIn('readme = "README.md"', pyproject)
-        self.assertIn('Homepage = "https://rung.edoworks.com/"', pyproject)
+        self.assertIn('Homepage = "https://edoworks.com/rung/"', pyproject)
         self.assertIn('Repository = "https://github.com/edoworks/rung"', pyproject)
         self.assertIn('Issues = "https://github.com/edoworks/rung/issues"', pyproject)
         self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
@@ -94,7 +94,7 @@ class DistributionContractTest(unittest.TestCase):
         ]
         funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertEqual(funding.strip(), 'custom: ["https://rung.edoworks.com"]')
+        self.assertEqual(funding.strip(), 'custom: ["https://edoworks.com/rung/"]')
         self.assertNotIn("buy.stripe.com", funding)
         self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", readme), links)
         for link in links:

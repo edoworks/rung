@@ -52,7 +52,7 @@ def main() -> int:
     for required in (
         'description = "Assess observable repository evidence for responsible AI coding-agent authority"',
         'readme = "README.md"',
-        'Homepage = "https://rung.edoworks.com/"',
+        'Homepage = "https://edoworks.com/rung/"',
         'Repository = "https://github.com/edoworks/rung"',
         'Issues = "https://github.com/edoworks/rung/issues"',
         'Changelog = "https://github.com/edoworks/rung/releases"',

@@ -9,12 +9,38 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+RELEASE_FILES = (
+    "pyproject.toml",
+    "requirements-release.txt",
+    "action.yml",
+    ".github/workflows/release.yml",
+    "scripts/validate_release.py",
+    "scripts/release_artifacts.py",
+)
+CONTAINER_DEPENDENCY_MARKERS = (
+    "docker build",
+    "docker compose",
+    "docker run",
+    "docker push",
+    "ghcr.io/",
+    "container-image",
+    "container:",
+)
+
 
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def assert_container_free_release() -> None:
+    for relative in RELEASE_FILES:
+        text = read(ROOT / relative).lower()
+        for marker in CONTAINER_DEPENDENCY_MARKERS:
+            assert marker not in text, f"release path depends on container runtime: {relative} ({marker})"
+
+
 def main() -> int:
+    assert_container_free_release()
     manifest = json.loads(read(ROOT / "product-manifest.json"))
     assert manifest["schema"] == "foculoom-product/v0.1"
     assert manifest["owner"] == "Foculoom LLC"

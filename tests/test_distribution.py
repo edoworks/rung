@@ -70,6 +70,13 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("needs: [test, build]", workflow)
         self.assertIn('test "$TEST_RESULT" = success && test "$BUILD_RESULT" = success', workflow)
 
+    def test_release_paths_have_no_container_runtime_dependency(self):
+        validator = (ROOT / "scripts" / "validate_distribution.py").read_text(encoding="utf-8")
+        for marker in ("docker build", "docker compose", "docker run", "docker push", "ghcr.io/", "container-image", "container:"):
+            self.assertIn(marker, validator)
+        security_rules = (ROOT / "rung" / "checks" / "security_never_rules.py").read_text(encoding="utf-8")
+        self.assertIn("Never expose the Docker socket", security_rules)
+
     def test_package_metadata_has_canonical_public_urls(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('description = "Assess observable repository evidence for responsible AI coding-agent authority"', pyproject)

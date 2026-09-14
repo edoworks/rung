@@ -27,6 +27,12 @@ python3 rung-cli.py --root /path/to/your/repo --json
 
 The original `rung --root ...` invocation remains the normal audit interface.
 
+Rung's public release artifacts do not require Docker or another container
+runtime. The wheel, source distribution, and standalone `rung-cli.py` are
+validated from a clean environment without network access or dependencies on
+the audited repository. The historical `rung.edoworks.com` web distribution is
+separate from these artifacts and is not a supported runtime dependency.
+
 ## Reproducible receipts
 
 Run Rung from an independently installed, version-pinned distribution. Do not

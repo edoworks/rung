@@ -70,11 +70,18 @@ class DistributionContractTest(unittest.TestCase):
         self.assertIn("needs: [test, build]", workflow)
         self.assertIn('test "$TEST_RESULT" = success && test "$BUILD_RESULT" = success', workflow)
 
+    def test_release_paths_have_no_container_runtime_dependency(self):
+        validator = (ROOT / "scripts" / "validate_distribution.py").read_text(encoding="utf-8")
+        for marker in ("docker build", "docker compose", "docker run", "docker push", "ghcr.io/", "container-image", "container:"):
+            self.assertIn(marker, validator)
+        security_rules = (ROOT / "rung" / "checks" / "security_never_rules.py").read_text(encoding="utf-8")
+        self.assertIn("Never expose the Docker socket", security_rules)
+
     def test_package_metadata_has_canonical_public_urls(self):
         pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         self.assertIn('description = "Assess observable repository evidence for responsible AI coding-agent authority"', pyproject)
         self.assertIn('readme = "README.md"', pyproject)
-        self.assertIn('Homepage = "https://rung.edoworks.com/"', pyproject)
+        self.assertIn('Homepage = "https://edoworks.com/rung/"', pyproject)
         self.assertIn('Repository = "https://github.com/edoworks/rung"', pyproject)
         self.assertIn('Issues = "https://github.com/edoworks/rung/issues"', pyproject)
         self.assertIn('Changelog = "https://github.com/edoworks/rung/releases"', pyproject)
@@ -87,7 +94,7 @@ class DistributionContractTest(unittest.TestCase):
         ]
         funding = (ROOT / ".github" / "FUNDING.yml").read_text(encoding="utf-8")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertEqual(funding.strip(), 'custom: ["https://rung.edoworks.com"]')
+        self.assertEqual(funding.strip(), 'custom: ["https://edoworks.com/rung/"]')
         self.assertNotIn("buy.stripe.com", funding)
         self.assertEqual(re.findall(r"https://buy\.stripe\.com/[A-Za-z0-9]+", readme), links)
         for link in links:

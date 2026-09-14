@@ -12,7 +12,7 @@
     {"id": "pypi", "type": "registry", "status": "available", "url": "https://pypi.org/project/rung-audit/0.3.1/"},
     {"id": "github-actions", "type": "marketplace", "status": "planned"},
     {"id": "skills-sh", "type": "directory", "status": "planned"},
-    {"id": "website", "type": "direct", "status": "available", "url": "https://rung.edoworks.com/"}
+    {"id": "website", "type": "direct", "status": "available", "url": "https://edoworks.com/rung/"}
   ],
   "commercial": {
     "priority": "paused",
